@@ -14,8 +14,15 @@ export default function AtelierDashboard() {
   const [qrReportId, setQrReportId] = useState<string | null>(null);
 
   const qrReport = qrReportId ? reports.find(r => r.id === qrReportId) : null;
-  const qrUrl = qrReport 
-    ? `${window.location.origin}/rapport/${qrReport.id}?d=${btoa(encodeURIComponent(JSON.stringify(qrReport)))}` 
+  
+  // Create a clean version without heavy base64 strings to avoid QR code capacity errors and URL length limits
+  const cleanReportForUrl = qrReport ? { ...qrReport } : null;
+  if (cleanReportForUrl && cleanReportForUrl.lienPhotoValise && cleanReportForUrl.lienPhotoValise.startsWith('data:image')) {
+    delete cleanReportForUrl.lienPhotoValise;
+  }
+
+  const qrUrl = cleanReportForUrl 
+    ? `${window.location.origin}/rapport/${cleanReportForUrl.id}?d=${btoa(encodeURIComponent(JSON.stringify(cleanReportForUrl)))}` 
     : '';
 
   const downloadQRCode = () => {
@@ -172,9 +179,15 @@ export default function AtelierDashboard() {
                 Votre client peut scanner ce code pour accéder à son rapport sur son téléphone.
               </p>
               
-              <div id="qr-code-wrapper" className="bg-white p-4 rounded-xl shadow-inner mb-6">
-                <QRCode value={qrUrl} size={200} />
-              </div>
+              {qrUrl.length > 2900 ? (
+                <div className="bg-red-950/30 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm mb-6">
+                  Le rapport contient trop de texte pour être converti en QR code sans base de données. Veuillez réduire la taille des observations pour utiliser cette fonctionnalité hors-ligne.
+                </div>
+              ) : (
+                <div id="qr-code-wrapper" className="bg-white p-4 rounded-xl shadow-inner mb-6">
+                  <QRCode value={qrUrl} size={200} />
+                </div>
+              )}
               
               <div className="flex flex-col gap-3 w-full">
                 <button 

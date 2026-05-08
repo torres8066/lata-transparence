@@ -1,3 +1,5 @@
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
@@ -17,10 +19,11 @@ export default function CreateReport() {
     degreUrgence: 'Aucune',
   });
 
-const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.interventionId) return alert('Veuillez sélectionner une intervention.');
     
+    // 1. On prépare le rapport avec un ID unique
     const newReport: ClientReport = {
       ...(formData as ClientReport),
       id: uuidv4(),
