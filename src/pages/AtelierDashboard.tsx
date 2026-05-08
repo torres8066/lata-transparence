@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useAppStore } from '../store/useAppStore';
 import { Link } from 'react-router-dom';
 import { FilePlus, QrCode, ExternalLink, Calendar, Car, ClipboardList, X, Pencil, Download, LinkIcon } from 'lucide-react';
@@ -10,8 +12,26 @@ import { UrgencyLevel } from '../types';
 import QRCode from 'react-qr-code';
 
 export default function AtelierDashboard() {
-  const reports = useAppStore(state => state.reports);
+// 1. On prépare un espace pour stocker les vrais rapports
+  const [reports, setReports] = useState<any[]>([]);
   const [qrReportId, setQrReportId] = useState<string | null>(null);
+
+  // 2. LA LECTURE : On écoute Firebase en temps réel
+  useEffect(() => {
+    // On demande le tiroir "rapports", trié du plus récent au plus ancien
+    const q = query(collection(db, "rapports"), orderBy("date", "desc"));
+    
+    // onSnapshot met à jour l'écran automatiquement dès qu'un dossier est ajouté !
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const rapportsFirebase = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setReports(rapportsFirebase);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const qrReport = qrReportId ? reports.find(r => r.id === qrReportId) : null;
   
