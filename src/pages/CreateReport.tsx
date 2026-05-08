@@ -17,7 +17,7 @@ export default function CreateReport() {
     degreUrgence: 'Aucune',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.interventionId) return alert('Veuillez sélectionner une intervention.');
     
@@ -27,8 +27,19 @@ export default function CreateReport() {
       date: new Date().toISOString(),
     };
     
-    addReport(newReport);
-    navigate('/');
+    try {
+      // 2. LA MAGIE : On sauvegarde dans le coffre-fort Firebase !
+      await setDoc(doc(db, "rapports", newReport.id), newReport);
+      
+      // 3. On met à jour l'affichage local
+      addReport(newReport);
+      
+      // 4. On redirige vers l'accueil
+      navigate('/');
+    } catch (error) {
+      console.error("Erreur Firebase :", error);
+      alert("Erreur lors de la sauvegarde du rapport dans la base de données.");
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
