@@ -15,6 +15,7 @@ export default function AtelierDashboard() {
 // 1. On prépare un espace pour stocker les vrais rapports
   const [reports, setReports] = useState<any[]>([]);
   const [qrReportId, setQrReportId] = useState<string | null>(null);
+  const qrReport = qrReportId ? reports.find(r => r.id === qrReportId) : null;
 
   // 2. LA LECTURE : On écoute Firebase en temps réel
   useEffect(() => {
@@ -33,17 +34,11 @@ export default function AtelierDashboard() {
     return () => unsubscribe();
   }, []);
 
-  const qrReport = qrReportId ? reports.find(r => r.id === qrReportId) : null;
-  
-  // Create a clean version without heavy base64 strings to avoid QR code capacity errors and URL length limits
-  const cleanReportForUrl = qrReport ? { ...qrReport } : null;
-  if (cleanReportForUrl && cleanReportForUrl.lienPhotoValise && cleanReportForUrl.lienPhotoValise.startsWith('data:image')) {
-    delete cleanReportForUrl.lienPhotoValise;
-  }
-
-  const qrUrl = cleanReportForUrl 
-    ? `${window.location.origin}/rapport/${cleanReportForUrl.id}?d=${btoa(encodeURIComponent(JSON.stringify(cleanReportForUrl)))}` 
+// Le QR Code pointe directement vers le dossier Firebase en public !
+  const qrUrl = qrReport 
+    ? `https://lata-transparence.vercel.app/rapport/${qrReport.id}` 
     : '';
+
 
   const downloadQRCode = () => {
     const container = document.getElementById('qr-code-wrapper');
