@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { CATALOGUE } from '../data/catalogue';
@@ -8,30 +8,50 @@ import { fr } from 'date-fns/locale';
 import { DownloadCloud, ImageIcon, PlayCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ReportType, UrgencyLevel, ClientReport as ClientReportType } from '../types';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function ClientReport() {
-  const { id } = useParams();
-  const reports = useAppStore(state => state.reports);
-  const location = useLocation();
+const { id } = useParams();
+  // On prépare un espace vide pour stocker le rapport qui viendra de Firebase
+  const [report, setReport] = useState<ClientReportType | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  const report = useMemo(() => {
-    // 1. Check if data is passed via URL query parameter "d"
-    const searchParams = new URLSearchParams(location.search);
-    const dataEncoded = searchParams.get('d');
-    if (dataEncoded) {
+// La requête magique vers Firebase
+  useEffect(() => {
+    async function fetchReport() {
+      if (!id) return;
       try {
-        const decoded = JSON.parse(decodeURIComponent(atob(dataEncoded)));
-        return decoded as ClientReportType;
-      } catch (e) {
-        console.error("Failed to decode report from URL", e);
+        const docRef = doc(db, "rapports", id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          setReport(docSnap.data() as ClientReportType);
+        } else {
+          console.log("Aucun rapport trouvé !");
+        }
+      } catch (error) {
+        console.error("Erreur de lecture Firebase:", error);
+      } finally {
+        setLoading(false);
       }
     }
-    // 2. Fallback to local storage using the id parameter
-    return id ? reports.find(r => r.id === id) : null;
-  }, [id, reports, location.search]);
 
-  const catalogueItem = useMemo(() => report ? CATALOGUE.find(c => c.id === report.interventionId) : null, [report]);
+    fetchReport();
+  }, [id]);
 
+  const catalogueItem = report ? CATALOGUE.find(c => c.id === report.interventionId) : null;
+
+  // Un petit écran de chargement le temps que Firebase réponde (1 seconde)
+  if (loading) {
+    return (
+      <div className="h-screen w-full bg-neutral-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  
   if (!report || !catalogueItem) {
     return (
       <div className="h-screen w-full bg-neutral-950 text-neutral-100 flex items-center justify-center p-4">
